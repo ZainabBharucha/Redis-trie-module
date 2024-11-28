@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include "trie.h"
+#include "redismodule.h"
+#include <string.h>
 
 // Create a new Trie node
 TrieNode* createNode(char character) {
@@ -38,4 +40,21 @@ int searchWord(TrieNode *root, const char *word) {
         word++;
     }
     return current->is_end_of_word;
+}
+
+void collectWordsWithPrefix(TrieNode *node, const char *prefix, char *buffer, int depth, RedisModuleString **result, int *count) {
+    if (node == NULL) return;
+
+    if (node->is_end_of_word) {
+        buffer[depth] = '\0';
+        result[*count] = RedisModule_CreateString(NULL, buffer, strlen(buffer));
+        (*count)++;
+    }
+
+    for (int i = 0; i < 26; i++) {
+        if (node->children[i]) {
+            buffer[depth] = 'a' + i;
+            collectWordsWithPrefix(node->children[i], prefix, buffer, depth + 1, result, count);
+        }
+    }
 }
