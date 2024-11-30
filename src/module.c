@@ -40,25 +40,22 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
 
 // Redis Command: Add a word to the Trie
 int TrieAddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-    if (argc != 2) {
+    if (argc != 3) {
         return RedisModule_ReplyWithError(ctx, "ERR wrong number of arguments");
     }
 
-    // Extract the word
-    size_t len;
-    const char *word = RedisModule_StringPtrLen(argv[1], &len);
+    size_t key_len, value_len;
+    const char *key = RedisModule_StringPtrLen(argv[1], &key_len);
+    const char *value = RedisModule_StringPtrLen(argv[2], &value_len);
 
-    // Initialize the Trie root if it doesn't exist
     if (trie_root == NULL) {
-        trie_root = createNode('\0'); // Root node with a null character
+        trie_root = createNode('\0'); // Initialize root
     }
 
-    // Add the word to the Trie
-    addWord(trie_root, word);
-
-    // Reply to the client
+    addWord(trie_root, key, value);
     return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
+
 
 // Redis Command: Search for a word in the Trie
 int TrieSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -66,17 +63,17 @@ int TrieSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return RedisModule_ReplyWithError(ctx, "ERR wrong number of arguments");
     }
 
-    // Extract the word
-    size_t len;
-    const char *word = RedisModule_StringPtrLen(argv[1], &len);
+    size_t key_len;
+    const char *key = RedisModule_StringPtrLen(argv[1], &key_len);
 
-    // Search for the word in the Trie
-    if (searchWord(trie_root, word)) {
-        return RedisModule_ReplyWithSimpleString(ctx, "YES");
+    char *value = searchWord(trie_root, key);
+    if (value) {
+        return RedisModule_ReplyWithStringBuffer(ctx, value, strlen(value));
     } else {
-        return RedisModule_ReplyWithSimpleString(ctx, "NO");
+        return RedisModule_ReplyWithNull(ctx);
     }
 }
+
 
 int TriePrefixSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (argc != 2) {
@@ -119,19 +116,18 @@ int TrieDeleteCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return RedisModule_ReplyWithError(ctx, "ERR wrong number of arguments");
     }
 
-    // Extract the word
-    size_t len;
-    const char *word = RedisModule_StringPtrLen(argv[1], &len);
+    size_t key_len;
+    const char *key = RedisModule_StringPtrLen(argv[1], &key_len);
 
     if (trie_root == NULL) {
         return RedisModule_ReplyWithSimpleString(ctx, "NO");
     }
 
-    // Attempt to delete the word
-    if (deleteWord(trie_root, word, 0)) {
+    if (deleteWord(trie_root, key, 0)) {
         return RedisModule_ReplyWithSimpleString(ctx, "OK");
     } else {
         return RedisModule_ReplyWithSimpleString(ctx, "NO");
     }
 }
+
 

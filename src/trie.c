@@ -16,10 +16,13 @@ TrieNode* createNode(char character) {
 }
 
 // Add a word to the Trie
-void addWord(TrieNode *root, const char *word) {
+void addWord(TrieNode *root, const char *word, const char *value) {
     TrieNode *current = root;
     while (*word) {
         int index = *word - 'a';
+        if (index < 0 || index >= 26) {
+            return; // Skip invalid characters
+        }
         if (current->children[index] == NULL) {
             current->children[index] = createNode(*word);
         }
@@ -27,21 +30,27 @@ void addWord(TrieNode *root, const char *word) {
         word++;
     }
     current->is_end_of_word = 1;
+    if (current->value) {
+        free(current->value); // Free old value if it exists
+    }
+    current->value = strdup(value); // Store the new value
 }
 
+
 // Search for a word in the Trie
-int searchWord(TrieNode *root, const char *word) {
+char* searchWord(TrieNode *root, const char *word) {
     TrieNode *current = root;
     while (*word) {
         int index = *word - 'a';
-        if (current->children[index] == NULL) {
-            return 0;
+        if (index < 0 || index >= 26 || current->children[index] == NULL) {
+            return NULL; // Key not found
         }
         current = current->children[index];
         word++;
     }
-    return current->is_end_of_word;
+    return current->is_end_of_word ? current->value : NULL; // Return value if key exists
 }
+
 
 void collectWordsWithPrefix(TrieNode *node, const char *prefix, char *buffer, int depth, RedisModuleString **result, int *count) {
     if (node == NULL) return;
@@ -62,17 +71,20 @@ void collectWordsWithPrefix(TrieNode *node, const char *prefix, char *buffer, in
 
 int deleteWord(TrieNode *node, const char *word, int depth) {
     if (node == NULL) {
-        return 0; // Word not found
+        return 0; // Key not found
     }
 
-    // Base case: end of the word
     if (depth == strlen(word)) {
         if (!node->is_end_of_word) {
-            return 0; // Word not found
+            return 0; // Key not found
         }
 
-        node->is_end_of_word = 0; // Mark as non-terminal
-        // Check if the node has no children
+        node->is_end_of_word = 0;
+        if (node->value) {
+            free(node->value);
+            node->value = NULL;
+        }
+
         for (int i = 0; i < 26; i++) {
             if (node->children[i] != NULL) {
                 return 0; // Node has children, cannot delete
@@ -82,24 +94,22 @@ int deleteWord(TrieNode *node, const char *word, int depth) {
         return 1; // Node can be deleted
     }
 
-    // Recursive case: traverse to the next character
     int index = word[depth] - 'a';
     if (deleteWord(node->children[index], word, depth + 1)) {
-        free(node->children[index]); // Free the child node
+        free(node->children[index]);
         node->children[index] = NULL;
 
-        // Check if the current node is now a leaf
-        if (!node->is_end_of_word) {
+        if (!node->is_end_of_word && node->value == NULL) {
             for (int i = 0; i < 26; i++) {
                 if (node->children[i] != NULL) {
                     return 0; // Node still has children
                 }
             }
-
             return 1; // Node can be deleted
         }
     }
 
     return 0;
 }
+
 
