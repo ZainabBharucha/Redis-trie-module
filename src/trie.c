@@ -2,6 +2,7 @@
 #include "trie.h"
 #include "redismodule.h"
 #include <string.h>
+#include "trie.h"
 
 // Create a new Trie node
 TrieNode* createNode(char character) {
@@ -58,3 +59,47 @@ void collectWordsWithPrefix(TrieNode *node, const char *prefix, char *buffer, in
         }
     }
 }
+
+int deleteWord(TrieNode *node, const char *word, int depth) {
+    if (node == NULL) {
+        return 0; // Word not found
+    }
+
+    // Base case: end of the word
+    if (depth == strlen(word)) {
+        if (!node->is_end_of_word) {
+            return 0; // Word not found
+        }
+
+        node->is_end_of_word = 0; // Mark as non-terminal
+        // Check if the node has no children
+        for (int i = 0; i < 26; i++) {
+            if (node->children[i] != NULL) {
+                return 0; // Node has children, cannot delete
+            }
+        }
+
+        return 1; // Node can be deleted
+    }
+
+    // Recursive case: traverse to the next character
+    int index = word[depth] - 'a';
+    if (deleteWord(node->children[index], word, depth + 1)) {
+        free(node->children[index]); // Free the child node
+        node->children[index] = NULL;
+
+        // Check if the current node is now a leaf
+        if (!node->is_end_of_word) {
+            for (int i = 0; i < 26; i++) {
+                if (node->children[i] != NULL) {
+                    return 0; // Node still has children
+                }
+            }
+
+            return 1; // Node can be deleted
+        }
+    }
+
+    return 0;
+}
+

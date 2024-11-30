@@ -9,6 +9,8 @@ TrieNode *trie_root = NULL;
 int TrieAddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 int TrieSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 int TriePrefixSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
+int TrieDeleteCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
+
 
 // Module Initialization
 int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -30,6 +32,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
         return REDISMODULE_ERR;
     }
 
+    if (RedisModule_CreateCommand(ctx, "trie.delete", TrieDeleteCommand, "write", 1, 1, 1) == REDISMODULE_ERR) {
+        return REDISMODULE_ERR;
+    }
     return REDISMODULE_OK;
 }
 
@@ -108,3 +113,25 @@ int TriePrefixSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int a
 
     return REDISMODULE_OK;
 }
+
+int TrieDeleteCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    if (argc != 2) {
+        return RedisModule_ReplyWithError(ctx, "ERR wrong number of arguments");
+    }
+
+    // Extract the word
+    size_t len;
+    const char *word = RedisModule_StringPtrLen(argv[1], &len);
+
+    if (trie_root == NULL) {
+        return RedisModule_ReplyWithSimpleString(ctx, "NO");
+    }
+
+    // Attempt to delete the word
+    if (deleteWord(trie_root, word, 0)) {
+        return RedisModule_ReplyWithSimpleString(ctx, "OK");
+    } else {
+        return RedisModule_ReplyWithSimpleString(ctx, "NO");
+    }
+}
+

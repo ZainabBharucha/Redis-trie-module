@@ -16,5 +16,7 @@ TrieNode* createNode(char character);
 void addWord(TrieNode *root, const char *word);
 int searchWord(TrieNode *root, const char *word);
 void collectWordsWithPrefix(TrieNode *node, const char *prefix, char *buffer, int depth, RedisModuleString **result, int *count);
+int deleteWord(TrieNode *node, const char *word, int depth);
+
 
 #endif
