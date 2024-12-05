@@ -2,7 +2,7 @@
 #include "trie.h"
 #include "redismodule.h"
 #include <string.h>
-#include "trie.h"
+#include "redismodule.h"
 
 // Create a new Trie node
 TrieNode* createNode(char character) {
@@ -111,5 +111,51 @@ int deleteWord(TrieNode *node, const char *word, int depth) {
 
     return 0;
 }
+
+int wildcardSearch(TrieNode *node, const char *pattern, char *buffer, int depth, RedisModuleString **result, int *count) {
+    if (node == NULL) return 0;
+
+    // If the pattern is fully matched
+    if (*pattern == '\0') {
+        if (node->is_end_of_word) {
+            buffer[depth] = '\0';
+            char output[1024];
+            snprintf(output, sizeof(output), "%s: %s", buffer, node->value);
+            result[*count] = RedisModule_CreateString(NULL, output, strlen(output));
+            (*count)++;
+        }
+        return 1;
+    }
+
+    // Handle wildcards
+    if (*pattern == '?') {
+        // Match any single character
+        for (int i = 0; i < 26; i++) {
+            if (node->children[i]) {
+                buffer[depth] = 'a' + i;
+                wildcardSearch(node->children[i], pattern + 1, buffer, depth + 1, result, count);
+            }
+        }
+    } else if (*pattern == '*') {
+        // Match zero or more characters
+        wildcardSearch(node, pattern + 1, buffer, depth, result, count); // Match zero characters
+        for (int i = 0; i < 26; i++) {
+            if (node->children[i]) {
+                buffer[depth] = 'a' + i;
+                wildcardSearch(node->children[i], pattern, buffer, depth + 1, result, count); // Match one or more characters
+            }
+        }
+    } else {
+        // Match specific character
+        int index = *pattern - 'a';
+        if (index >= 0 && index < 26 && node->children[index]) {
+            buffer[depth] = *pattern;
+            wildcardSearch(node->children[index], pattern + 1, buffer, depth + 1, result, count);
+        }
+    }
+
+    return 0;
+}
+
 
 

@@ -10,31 +10,23 @@ int TrieAddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 int TrieSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 int TriePrefixSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 int TrieDeleteCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
-
+int TrieWildcardSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
 // Module Initialization
+
 int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (RedisModule_Init(ctx, "trie", 1, REDISMODULE_APIVER_1) == REDISMODULE_ERR) {
         return REDISMODULE_ERR;
     }
 
-    // Register the TRIE.ADD command
-    if (RedisModule_CreateCommand(ctx, "trie.add", TrieAddCommand, "write", 1, 1, 1) == REDISMODULE_ERR) {
+    if (RedisModule_CreateCommand(ctx, "trie.add", TrieAddCommand, "write", 1, 1, 1) == REDISMODULE_ERR ||
+        RedisModule_CreateCommand(ctx, "trie.search", TrieSearchCommand, "readonly", 1, 1, 1) == REDISMODULE_ERR ||
+        RedisModule_CreateCommand(ctx, "trie.prefix_search", TriePrefixSearchCommand, "readonly", 1, 1, 1) == REDISMODULE_ERR ||
+        RedisModule_CreateCommand(ctx, "trie.delete", TrieDeleteCommand, "write", 1, 1, 1) == REDISMODULE_ERR ||
+        RedisModule_CreateCommand(ctx, "trie.wildcard_search", TrieWildcardSearchCommand, "readonly", 1, 1, 1) == REDISMODULE_ERR) {
         return REDISMODULE_ERR;
     }
 
-    // Register the TRIE.SEARCH command
-    if (RedisModule_CreateCommand(ctx, "trie.search", TrieSearchCommand, "readonly", 1, 1, 1) == REDISMODULE_ERR) {
-        return REDISMODULE_ERR;
-    }
-
-    if (RedisModule_CreateCommand(ctx, "trie.prefix_search", TriePrefixSearchCommand, "readonly", 1, 1, 1) == REDISMODULE_ERR) {
-        return REDISMODULE_ERR;
-    }
-
-    if (RedisModule_CreateCommand(ctx, "trie.delete", TrieDeleteCommand, "write", 1, 1, 1) == REDISMODULE_ERR) {
-        return REDISMODULE_ERR;
-    }
     return REDISMODULE_OK;
 }
 
@@ -129,5 +121,33 @@ int TrieDeleteCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return RedisModule_ReplyWithSimpleString(ctx, "NO");
     }
 }
+
+int TrieWildcardSearchCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    if (argc != 2) {
+        return RedisModule_ReplyWithError(ctx, "ERR wrong number of arguments");
+    }
+
+    // Extract the pattern
+    size_t pattern_len;
+    const char *pattern = RedisModule_StringPtrLen(argv[1], &pattern_len);
+
+    // Initialize results
+    RedisModuleString *result[1024]; // Adjust size as needed
+    char buffer[1024];
+    int count = 0;
+
+    // Call wildcardSearch starting from the root
+    wildcardSearch(trie_root, pattern, buffer, 0, result, &count);
+
+    // Reply with all matching results
+    RedisModule_ReplyWithArray(ctx, count);
+    for (int i = 0; i < count; i++) {
+        RedisModule_ReplyWithString(ctx, result[i]);
+        RedisModule_FreeString(ctx, result[i]);
+    }
+
+    return REDISMODULE_OK;
+}
+
 
 
