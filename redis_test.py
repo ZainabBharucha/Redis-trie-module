@@ -6,18 +6,18 @@ import random
 client = redis.Redis(host='localhost', port=6381, decode_responses=True)
 
 # Benchmark TRIE.ADD
-# start = time.time()
-# for i in range(10000):  # Adjust the range for larger datasets
-#     client.execute_command("TRIE.ADD", f"key{i}", f"value{i}")
-# end = time.time()
-# print("TRIE.ADD latency for 10,000 items:", end - start)
+start = time.time()
+for i in range(10000):  # Adjust the range for larger datasets
+    client.execute_command("TRIE.ADD", f"key{i}", f"value{i}")
+end = time.time()
+print("TRIE.ADD latency for 10,000 items:", end - start)
 
 # # Benchmark TRIE.SEARCH
-# start = time.time()
-# for i in range(10000):
-#     client.execute_command("TRIE.SEARCH", f"key{i}")
-# end = time.time()
-# print("TRIE.SEARCH latency for 10,000 items:", end - start)
+start = time.time()
+for i in range(10000):
+    client.execute_command("TRIE.SEARCH", f"key{i}")
+end = time.time()
+print("TRIE.SEARCH latency for 10,000 items:", end - start)
 
 list = []
 with open("words_alpha.txt") as fp:

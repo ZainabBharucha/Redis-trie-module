@@ -1,7 +1,7 @@
 NAME=trie_module
 SRC=src/module.c src/trie.c
 CC=gcc
-CFLAGS=-g -fPIC -Wall -O2 -I. # Include current directory for redismodule.h
+CFLAGS=-g -fPIC -Wall -O2 -I. 
 LDFLAGS=-shared
 
 all:

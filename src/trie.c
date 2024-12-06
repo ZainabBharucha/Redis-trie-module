@@ -4,7 +4,6 @@
 #include <string.h>
 #include "redismodule.h"
 
-// Create a new Trie node
 TrieNode* createNode(char character) {
     TrieNode *node = malloc(sizeof(TrieNode));
     node->character = character;
@@ -15,13 +14,12 @@ TrieNode* createNode(char character) {
     return node;
 }
 
-// Add a word to the Trie
 void addWord(TrieNode *root, const char *word, const char *value) {
     TrieNode *current = root;
     while (*word) {
         int index = *word - 'a';
         if (index < 0 || index >= 26) {
-            return; // Skip invalid characters
+            return;
         }
         if (current->children[index] == NULL) {
             current->children[index] = createNode(*word);
@@ -31,24 +29,22 @@ void addWord(TrieNode *root, const char *word, const char *value) {
     }
     current->is_end_of_word = 1;
     if (current->value) {
-        free(current->value); // Free old value if it exists
+        free(current->value);
     }
-    current->value = strdup(value); // Store the new value
+    current->value = strdup(value);
 }
 
-
-// Search for a word in the Trie
 char* searchWord(TrieNode *root, const char *word) {
     TrieNode *current = root;
     while (*word) {
         int index = *word - 'a';
         if (index < 0 || index >= 26 || current->children[index] == NULL) {
-            return NULL; // Key not found
+            return NULL;
         }
         current = current->children[index];
         word++;
     }
-    return current->is_end_of_word ? current->value : NULL; // Return value if key exists
+    return current->is_end_of_word ? current->value : NULL;
 }
 
 
@@ -71,12 +67,12 @@ void collectWordsWithPrefix(TrieNode *node, const char *prefix, char *buffer, in
 
 int deleteWord(TrieNode *node, const char *word, int depth) {
     if (node == NULL) {
-        return 0; // Key not found
+        return 0; 
     }
 
     if (depth == strlen(word)) {
         if (!node->is_end_of_word) {
-            return 0; // Key not found
+            return 0; 
         }
 
         node->is_end_of_word = 0;
@@ -87,11 +83,11 @@ int deleteWord(TrieNode *node, const char *word, int depth) {
 
         for (int i = 0; i < 26; i++) {
             if (node->children[i] != NULL) {
-                return 0; // Node has children, cannot delete
+                return 0; 
             }
         }
 
-        return 1; // Node can be deleted
+        return 1; 
     }
 
     int index = word[depth] - 'a';
@@ -102,10 +98,10 @@ int deleteWord(TrieNode *node, const char *word, int depth) {
         if (!node->is_end_of_word && node->value == NULL) {
             for (int i = 0; i < 26; i++) {
                 if (node->children[i] != NULL) {
-                    return 0; // Node still has children
+                    return 0;
                 }
             }
-            return 1; // Node can be deleted
+            return 1; 
         }
     }
 
@@ -115,7 +111,6 @@ int deleteWord(TrieNode *node, const char *word, int depth) {
 int wildcardSearch(TrieNode *node, const char *pattern, char *buffer, int depth, RedisModuleString **result, int *count) {
     if (node == NULL) return 0;
 
-    // If the pattern is fully matched
     if (*pattern == '\0') {
         if (node->is_end_of_word) {
             buffer[depth] = '\0';
@@ -127,9 +122,7 @@ int wildcardSearch(TrieNode *node, const char *pattern, char *buffer, int depth,
         return 1;
     }
 
-    // Handle wildcards
     if (*pattern == '?') {
-        // Match any single character
         for (int i = 0; i < 26; i++) {
             if (node->children[i]) {
                 buffer[depth] = 'a' + i;
@@ -137,16 +130,14 @@ int wildcardSearch(TrieNode *node, const char *pattern, char *buffer, int depth,
             }
         }
     } else if (*pattern == '*') {
-        // Match zero or more characters
-        wildcardSearch(node, pattern + 1, buffer, depth, result, count); // Match zero characters
+        wildcardSearch(node, pattern + 1, buffer, depth, result, count); 
         for (int i = 0; i < 26; i++) {
             if (node->children[i]) {
                 buffer[depth] = 'a' + i;
-                wildcardSearch(node->children[i], pattern, buffer, depth + 1, result, count); // Match one or more characters
+                wildcardSearch(node->children[i], pattern, buffer, depth + 1, result, count); 
             }
         }
     } else {
-        // Match specific character
         int index = *pattern - 'a';
         if (index >= 0 && index < 26 && node->children[index]) {
             buffer[depth] = *pattern;

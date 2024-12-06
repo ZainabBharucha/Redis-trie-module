@@ -3,15 +3,14 @@
 
 #include "redismodule.h"
 
-// Trie Node structure with value support
+
 typedef struct TrieNode {
     char character;
     int is_end_of_word;
     struct TrieNode *children[26];
-    char *value; // Pointer to store the value associated with the key
+    char *value; 
 } TrieNode;
 
-// Function prototypes
 TrieNode* createNode(char character);
 void addWord(TrieNode *root, const char *word, const char *value);
 char* searchWord(TrieNode *root, const char *word);
